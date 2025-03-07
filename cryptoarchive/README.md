@@ -3,6 +3,8 @@
 # Step to bring up project for development
 1. `docker compose -f docker-compose.local.yml up`. It will bring up worker too.
 1. `docker compose -f docker-compose.local.yml run django python manage.py makemigrations`
+1. POST to backend using `/receive-post-request`. [CryptoArchive.postman_collection.json](CryptoArchive.postman_collection.json)
+1. (Optional) `createsuperuser` and login `/admin` to check the `exchanges` app database.
 
 Behold My Awesome Project!
 
