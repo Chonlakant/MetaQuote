@@ -5,6 +5,19 @@
 1. `docker compose -f docker-compose.local.yml run django python manage.py makemigrations`
 1. POST to backend using `/receive-post-request`. [CryptoArchive.postman_collection.json](CryptoArchive.postman_collection.json)
 1. (Optional) `createsuperuser` and login `/admin` to check the `exchanges` app database.
+1. To shutdown the containers. `docker compose -f docker-compose.local.yml down`
+2. To list volume of database. `docker volume ls`
+  ```bash
+  local     cryptoarchive_6b74524e-e553-459c-8d45-fa59ccd0f439
+  local     cryptoarchive_23746d93-8028-4421-a4f4-1da1b5444795
+  local     cryptoarchive_c9a6d7d6-a741-4298-a7d7-a1506ed37cae
+  local     cryptoarchive_c78fc44d-fe11-44b1-813c-99bff14e2a79
+  local     cryptoarchive_cryptoarchive_local_postgres_data
+  local     cryptoarchive_cryptoarchive_local_postgres_data_backups
+  local     cryptoarchive_cryptoarchive_local_redis_data
+  local     cryptoarchive_pycharm_helpers_PY-243.23654.177 
+  ```
+3. To remove volume of database. `docker volume rm cryptoarchive_cryptoarchive_local_postgres_data`
 
 Behold My Awesome Project!
 
