@@ -34,6 +34,8 @@ services:
       - cryptoarchive_local_postgres_data_backups:/backups
     env_file:
       - ./.envs/.local/.postgres
+    ports:
+      - "5432:5432"
 
   mailpit:
     image: docker.io/axllent/mailpit:latest
@@ -44,10 +46,10 @@ services:
   redis:
     image: docker.io/redis:6
     container_name: cryptoarchive_local_redis
-    
+
     volumes:
       - cryptoarchive_local_redis_data:/data
-    
+
 
   celeryworker:
     <<: *django

@@ -1,3 +1,4 @@
+# ruff: noqa: DJ001
 from django.db import models
 from django.db.models import BigAutoField
 
@@ -21,3 +22,67 @@ class Exchange(models.Model):
     staked0 = models.CharField(max_length=50, blank=True, null=True)
     staked1 = models.CharField(max_length=50, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.lp
+
+
+class SwapTransaction(models.Model):
+    id = BigAutoField(primary_key=True)
+    trace_id = models.CharField(max_length=50, blank=True, null=True)
+    in_tokens = models.JSONField(blank=True, null=True)
+    out_tokens = models.JSONField(blank=True, null=True)
+    in_amounts = models.JSONField(blank=True, null=True)
+    out_amounts = models.JSONField(blank=True, null=True)
+    gas_estimate = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    data_gas_estimate = models.IntegerField(blank=True, null=True)
+    gwei_per_gas = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    gas_estimate_value = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    in_values = models.JSONField(blank=True, null=True)
+    out_values = models.JSONField(blank=True, null=True)
+    net_out_value = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    price_impact = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    percent_diff = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    partner_fee_percent = models.DecimalField(
+        max_digits=50,
+        decimal_places=30,
+        blank=True,
+        null=True,
+    )
+    path_id = models.CharField(max_length=50, blank=True, null=True)
+    path_viz = models.CharField(max_length=50, blank=True, null=True)
+    block_number = models.IntegerField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.trace_id

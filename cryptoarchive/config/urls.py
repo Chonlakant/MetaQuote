@@ -8,7 +8,10 @@ from django.urls import path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 
-from cryptoarchive.exchanges.api.viewsets import receive_post_request
+from cryptoarchive.exchanges.api.viewsets import (
+    receive_post_request,
+    receive_swap_transaction,
+)
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
@@ -24,6 +27,11 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     # Your stuff: custom urls includes go here
     path("receive-post-request/", receive_post_request, name="receive-post-request"),
+    path(
+        "receive-swap-transaction/",
+        receive_swap_transaction,
+        name="save-swap-transaction",
+    ),
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
