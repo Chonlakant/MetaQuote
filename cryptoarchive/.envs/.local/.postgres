@@ -1,7 +1,13 @@
 # PostgreSQL
 # ------------------------------------------------------------------------------
-POSTGRES_HOST=postgres
+# POSTGRES_HOST=postgres
+# POSTGRES_PORT=5432
+# POSTGRES_DB=cryptoarchive
+# POSTGRES_USER=debug
+# POSTGRES_PASSWORD=debug
+
+POSTGRES_HOST=dpg-cu8fo6rv2p9s73cbjpc0-a.oregon-postgres.render.com
 POSTGRES_PORT=5432
-POSTGRES_DB=cryptoarchive
-POSTGRES_USER=debug
-POSTGRES_PASSWORD=debug
+POSTGRES_DB=liquidity
+POSTGRES_USER=bot_arb_alert_user
+POSTGRES_PASSWORD=GVmGqSxTHNtdvgp0VQrOeLAOQSMrPf8z
