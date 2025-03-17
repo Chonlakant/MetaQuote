@@ -1,5 +1,8 @@
 # Token Arbitrage Monitor
 
+## Query (psql) I use to export CSV for a data analytic on jupyter
+- `select * from price_snapshots WHERE "timestamp" >= NOW() - INTERVAL '12 hours' AND odos_usdc_return > 1000 ORDER BY token_symbol, "timestamp";`
+
 ## 🔍 เกี่ยวกับโปรเจกต์
 บอทนี้ใช้ **Odos** และ **Universal Assets (UA)** เพื่อหากำไรจากส่วนต่างราคา (Arbitrage) โดย:
 
