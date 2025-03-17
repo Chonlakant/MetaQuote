@@ -306,6 +306,8 @@ async def run_monitor():
                 
                 logger.info("\nFetching Odos quotes...")
                 odos_quotes = await get_odos_quotes(session, tokens)
+
+                print(f"{odos_quotes}")
                 
                 token_amounts = {
                     token: quote['token_amount'] 
@@ -315,6 +317,8 @@ async def run_monitor():
                 
                 logger.info("\nFetching UA quotes...")
                 ua_quotes = await get_universal_quotes(session, tokens, token_amounts)
+
+                print(f"{ua_quotes}")
                 
                 await check_opportunities(session, odos_quotes, ua_quotes)
                 
