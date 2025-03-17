@@ -1,14 +1,17 @@
-FROM python:3.11-slim
+# Use an official Python runtime as a parent image
+FROM python:3.8
 
-ENV TZ="Asia/Bangkok"
+# Set the working directory to /app
+WORKDIR /app
 
-ADD requirements.txt ./
+# Install Jupyter Notebook
+RUN pip install jupyter
 
-# Update pip first
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Make port 8888 available to the world outside this container
+EXPOSE 8888
 
-ADD . ./src
+# Define environment variable
+ENV NAME World
 
-WORKDIR ./src
-
-CMD ["python", "main.py"]
+# Run Jupyter Notebook when the container launches
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
