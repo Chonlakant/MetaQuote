@@ -1,0 +1,5 @@
+python-telegram-bot
+web3
+aiohttp
+requests
+psycopg2-binary

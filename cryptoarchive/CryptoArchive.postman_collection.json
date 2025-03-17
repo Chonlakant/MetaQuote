@@ -7,7 +7,7 @@
 	},
 	"item": [
 		{
-			"name": "New Request",
+			"name": "lp",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -28,6 +28,34 @@
 					"port": "8000",
 					"path": [
 						"receive-post-request",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "swap transaction",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n  {\n    \"traceId\": \"2e7c1393-22b0-4fb4-93a1-be328e6737be\",\n    \"inTokens\": [\n      \"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\"\n    ],\n    \"outTokens\": [\n      \"0xb0505e5a99abd03d94a1169e638b78edfed26ea4\"\n    ],\n    \"inAmounts\": [\n      \"1000000000\"\n    ],\n    \"outAmounts\": [\n      \"382462685497413140480\"\n    ],\n    \"gasEstimate\": 1664024.0,\n    \"dataGasEstimate\": 785,\n    \"gweiPerGas\": 0.0032730075,\n    \"gasEstimateValue\": 0.012293726959521889,\n    \"inValues\": [\n      1000.4866355334567\n    ],\n    \"outValues\": [\n      1000.9691026847883\n    ],\n    \"netOutValue\": 1000.9568089578287,\n    \"priceImpact\": -0.009024801804408119,\n    \"percentDiff\": 0.04822324798713851,\n    \"partnerFeePercent\": 0.0,\n    \"pathId\": \"1da944216e40ed12547386fd845f83bc\",\n    \"pathViz\": \"None\",\n    \"blockNumber\": 27217359\n  },\n  {\n    \"traceId\": \"5785555b-d5ad-4694-9ba6-0484c8fde3dd\",\n    \"inTokens\": [\n      \"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913\"\n    ],\n    \"outTokens\": [\n      \"0xb0505e5a99abd03d94a1169e638b78edfed26ea4\"\n    ],\n    \"inAmounts\": [\n      \"1000000000\"\n    ],\n    \"outAmounts\": [\n      \"376594581714359812096\"\n    ],\n    \"gasEstimate\": 683204.0,\n    \"dataGasEstimate\": 429,\n    \"gweiPerGas\": 0.00326900475,\n    \"gasEstimateValue\": 0.005109344113783452,\n    \"inValues\": [\n      1000.3684149375849\n    ],\n    \"outValues\": [\n      1000.1301218114252\n    ],\n    \"netOutValue\": 1000.1250124673114,\n    \"priceImpact\": -0.019725692271286507,\n    \"percentDiff\": -0.02382053677440865,\n    \"partnerFeePercent\": 0.0,\n    \"pathId\": \"9d993889a38b77503347d742b4f419e2\",\n    \"pathViz\": \"None\",\n    \"blockNumber\": 27219327\n  }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8000/receive-swap-transaction/",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"receive-swap-transaction",
 						""
 					]
 				}

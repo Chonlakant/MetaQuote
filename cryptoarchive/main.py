@@ -1,3 +1,5 @@
+import os
+import django
 import asyncio
 import aiohttp
 import json
@@ -11,6 +13,20 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import logging
 from contextlib import contextmanager
+from asgiref.sync import sync_to_async # Allow Django save database from async context.
+
+
+# print("DJANGO_SETTINGS_MODULE")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.single")
+# /local/.postgres
+# os.environ.setdefault("DATABASE_URL", "postgresql://bot_arb_alert_user:GVmGqSxTHNtdvgp0VQrOeLAOQSMrPf8z@dpg-cu8fo6rv2p9s73cbjpc0-a.oregon-postgres.render.com/liquidity")
+os.environ.setdefault("DATABASE_URL", "postgresql://debug:debug@localhost:5432/cryptoarchive")
+django.setup()
+
+from cryptoarchive.exchanges.api.serializers import SwapTransactionSerializer, OneLineUAQuoteSerializer
+
+from cryptoarchive.exchanges.models import UAQuote, OneLineUAQuote
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -99,6 +115,40 @@ BOT_TOKEN = "8043514986:AAEctGZ9-ia09HLcH_4ElsAyiKjAiHEi5Kw"
 CHAT_ID = "-4743015550"
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
+
+@sync_to_async
+def save_swap_transaction_to_db(data):
+    serializer = SwapTransactionSerializer(data=data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+
+
+@sync_to_async
+def save_one_line_ua_quote_to_db(data):
+    # Will call Django and save to storage here.
+    # DRF has bug. It randomly crashes when some fields are missing.
+    logging.info(f"data: {data}")
+    OneLineUAQuote.objects.create(
+        USUI=data.get("USUI"),
+        uSOL=data.get("uSOL"),
+        uADA=data.get("uADA"),
+        uPEPE=data.get("uPEPE"),
+        uSEI=data.get("uSEI"),
+        uDOGE=data.get("uDOGE"),
+        uSHIB=data.get("uSHIB"),
+        uLINK=data.get("uLINK"),
+        uAPT=data.get("uAPT"),
+        uNEAR=data.get("uNEAR"),
+        uXRP=data.get("uXRP"),
+    )
+
+
+
+@sync_to_async
+def save_ua_quote_to_db(data):
+    UAQuote.objects.create(**data)
+
+
 class DatabaseManager:
     _instance = None
     _conn = None
@@ -125,29 +175,29 @@ class DatabaseManager:
         try:
             profit = Decimal(str(odos_return)) - Decimal('1000.0')
             profit_percentage = (profit / Decimal('1000.0')) * Decimal('100.0')
-            
+
             # Convert to Decimal for precise handling
             ua_amount = Decimal(str(ua_amount))
             odos_return = Decimal(str(odos_return))
-            
+
             with self._conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO price_snapshots 
+                    INSERT INTO price_snapshots
                     (token_symbol, ua_token_amount, odos_usdc_return, profit_amount, profit_percentage)
                     VALUES (%s, %s, %s, %s, %s)
                     RETURNING id
                 """, (token, ua_amount, odos_return, profit, profit_percentage))
-                
+
                 snapshot_id = cur.fetchone()[0]
-                
+
                 if profit > min_profit:
                     cur.execute("""
-                        INSERT INTO arbitrage_opportunities 
+                        INSERT INTO arbitrage_opportunities
                         (snapshot_id, token_symbol, profit_amount, profit_percentage)
                         VALUES (%s, %s, %s, %s)
                     """, (snapshot_id, token, profit, profit_percentage))
                     logger.info(f"Arbitrage: {token}, Profit: ${float(profit):.2f}")
-                
+
                 self._conn.commit()
 
         except Exception as e:
@@ -178,7 +228,7 @@ async def get_odos_quotes(session: aiohttp.ClientSession, tokens: List[str]) -> 
     async def fetch_quote(token: str) -> tuple[str, Optional[Dict]]:
         try:
             url = "https://api.odos.xyz/sor/quote/v2"
-            
+
             quote_request = {
                 "chainId": 8453,
                 "inputTokens": [
@@ -199,10 +249,17 @@ async def get_odos_quotes(session: aiohttp.ClientSession, tokens: List[str]) -> 
                 "disableRFQs": True,
                 "compact": True
             }
-            
+
             async with session.post(url, json=quote_request, ssl=ssl_context) as response:
                 if response.status == 200:
+                    # Will call Django and save to storage here.
+                    logging.info("Response is 200")
                     data = json.loads(await response.text())
+                    logging.info(f"Quote Response: {data}")
+
+                    await save_swap_transaction_to_db(data)
+                    logging.info(f"Quote Response saved!")
+
                     if 'outAmounts' in data and isinstance(data['outAmounts'], list) and data['outAmounts']:
                         token_amount = int(data['outAmounts'][0])
                         return token, {"token_amount": str(token_amount)}
@@ -220,9 +277,9 @@ async def get_universal_quotes(session: aiohttp.ClientSession, tokens: List[str]
     async def fetch_quote(token: str, amount: str) -> tuple[str, Optional[float]]:
         url = 'https://www.universal.xyz/api/v1/quote'
         headers = {'Content-Type': 'application/json'}
-        
+
         token_name = token.replace("u", "").replace("USUI", "SUI")
-        
+
         payload = {
             "type": "SELL",
             "slippage_bips": 20,
@@ -236,7 +293,13 @@ async def get_universal_quotes(session: aiohttp.ClientSession, tokens: List[str]
         try:
             async with session.post(url, json=payload, headers=headers, ssl=False) as response:
                 if response.status == 200:
+                    # Will call Django and save to storage here.
                     data = json.loads(await response.text())
+                    logging.info(f"UA Quote: {data}")
+
+                    await save_ua_quote_to_db(data)
+                    logging.info(f"UAQuote instance saved!")
+
                     if 'pair_token_amount' in data:
                         usdc_amount = float(data['pair_token_amount']) / (10 ** 6)  # Convert to USDC
                         return token, usdc_amount
@@ -253,7 +316,7 @@ async def check_opportunities(session: aiohttp.ClientSession, odos_quotes: Dict[
     """Check for arbitrage opportunities between Odos and UA"""
     logger.info("Checking opportunities...")
     db = DatabaseManager.get_instance()
-    
+
     for token in TOKEN_INFO.keys():
         if token not in odos_quotes or token not in ua_quotes:
             logger.debug(f"Skipping {token} - missing quotes")
@@ -262,17 +325,17 @@ async def check_opportunities(session: aiohttp.ClientSession, odos_quotes: Dict[
         try:
             odos_token_amount = float(odos_quotes[token]['token_amount'])
             ua_usdc_amount = ua_quotes[token]
-            
+
             logger.info(f"\n=== {token} ({TOKEN_INFO[token]['name']}) ===")
             logger.info(f"Odos Token Amount: {odos_token_amount}")
             logger.info(f"UA USDC Return: {ua_usdc_amount}")
 
             await db.save_price_data(token, odos_token_amount, ua_usdc_amount)
-            
+
             if ua_usdc_amount > 1001:
                 profit = ua_usdc_amount - 1000
                 profit_percentage = (profit / 1000) * 100
-                
+
                 message = f"""🔄 Arbitrage Opportunity!
 💱 {token} ({TOKEN_INFO[token]['name']}):
 • Input USDC: 1000
@@ -282,10 +345,10 @@ async def check_opportunities(session: aiohttp.ClientSession, odos_quotes: Dict[
 Trade at:
 • Odos: https://app.odos.xyz/
 • UA: https://universal.xyz/swap?token={token.replace("u", "").replace("USUI", "SUI")}"""
-                
+
                 await send_telegram_message(session, message)
                 logger.info(f"✅ Alert sent for {token}!")
-            
+
         except Exception as e:
             logger.error(f"Error processing {token}: {e}")
             continue
@@ -293,9 +356,9 @@ Trade at:
 async def run_monitor():
     logger.info("=== Starting Token Arbitrage Monitor (Reversed Direction) ===")
     base_delay = 20
-    
+
     connector = aiohttp.TCPConnector(ssl=ssl_context)
-    
+
     async with aiohttp.ClientSession(connector=connector) as session:
         while True:
             try:
@@ -303,31 +366,35 @@ async def run_monitor():
                 logger.info(f"\n[{start_time.strftime('%H:%M:%S')}] Starting new monitoring cycle...")
 
                 tokens = list(TOKEN_INFO.keys())
-                
+
                 logger.info("\nFetching Odos quotes...")
                 odos_quotes = await get_odos_quotes(session, tokens)
 
                 print(f"{odos_quotes}")
-                
+
                 token_amounts = {
-                    token: quote['token_amount'] 
-                    for token, quote in odos_quotes.items() 
+                    token: quote['token_amount']
+                    for token, quote in odos_quotes.items()
                     if quote and 'token_amount' in quote
                 }
-                
+
                 logger.info("\nFetching UA quotes...")
                 ua_quotes = await get_universal_quotes(session, tokens, token_amounts)
 
-                print(f"{ua_quotes}")
-                
+                logging.info("ua one line quotes")
+                logging.info(f"{ua_quotes}")
+
+                await save_one_line_ua_quote_to_db(ua_quotes)
+                logging.info("One Line UA Quote saved!")
+
                 await check_opportunities(session, odos_quotes, ua_quotes)
-                
+
                 end_time = datetime.now()
                 execution_time = (end_time - start_time).total_seconds()
                 logger.info(f"\nCycle execution time: {execution_time:.2f}s")
-                
+
                 await asyncio.sleep(max(0, base_delay - execution_time))
-                
+
             except Exception as e:
                 logger.error(f"Error in monitoring loop: {e}")
                 await asyncio.sleep(5)

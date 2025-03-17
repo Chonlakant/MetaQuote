@@ -19,6 +19,10 @@
   ```
 3. To remove volume of database. `docker volume rm cryptoarchive_cryptoarchive_local_postgres_data`
 
+# Step to run create single instance VS bulk_create
+1. `docker compose -f docker-compose.local.yml run django python manage.py shell_plus`
+2. Copy and paste the `benchmark.py`
+
 Behold My Awesome Project!
 
 [![Built with Cookiecutter Django](https://img.shields.io/badge/built%20with-Cookiecutter%20Django-ff69b4.svg?logo=cookiecutter)](https://github.com/cookiecutter/cookiecutter-django/)
