@@ -8,8 +8,6 @@ from typing import Dict, Optional, List
 import requests
 import ssl
 import certifi
-import psycopg2
-from psycopg2.extras import RealDictCursor
 import logging
 from contextlib import contextmanager
 
@@ -57,12 +55,15 @@ async def get_kyber_swap_buy_quote(usdc_amount, token_in, token_out):
                     return {"success": False, "error": f"HTTP Error: {response.status}"}
                 
                 data = await response.json()
+                print(json.dumps(data, indent=4))
         
         if data and 'data' in data and 'routeSummary' in data['data']:
             route_summary = data['data']['routeSummary']
             
             print("kyberQuote", route_summary)
             print("kyberRoute", route_summary['route'])
+
+
             
             sol_amount = route_summary['amountOut']
             gas_usd = float(route_summary['gasUsd'])
