@@ -1,15 +1,22 @@
+# flake8: noqa: E402
 import os
 import asyncio
 import aiohttp
 import json
 from datetime import datetime
-from decimal import Decimal
-from typing import Dict, Optional, List
-import requests
 import ssl
 import certifi
 import logging
-from contextlib import contextmanager
+import django
+from asgiref.sync import sync_to_async
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.single")
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql://debug:debug@localhost:5432/cryptoarchive"
+)
+django.setup()
+
+from cryptoarchive.kyberswaps.api.serializers import KyberswapRouteSummarySerializer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,7 +28,10 @@ KYBERSWAP_URL = "https://aggregator-api.kyberswap.com"
 CONFIG = {
     "API": {
         "BASE_URL": "https://relayer.universal.xyz/api",
-        "KEY": os.environ.get("UA_API_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlcklkIjoiYWVjMjQ0NmMtN2I3Yy00MDA4LTkyNjItYjZmYjI2ZmRkMTdiIiwiaWF0IjoxNzM1OTM2NTA2LCJleHAiOjE3Njc0OTQxMDZ9.api1uZnduSlY1O73CzitvbB7ywuSJrm1Go-ZyhmN2rA"),
+        "KEY": os.environ.get(
+            "UA_API_KEY",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm92aWRlcklkIjoiYWVjMjQ0NmMtN2I3Yy00MDA4LTkyNjItYjZmYjI2ZmRkMTdiIiwiaWF0IjoxNzM1OTM2NTA2LCJleHAiOjE3Njc0OTQxMDZ9.api1uZnduSlY1O73CzitvbB7ywuSJrm1Go-ZyhmN2rA",
+        ),
     },
     "CHAIN": {
         "ID": 8453,  # BASE chain ID
@@ -33,46 +43,59 @@ CONFIG = {
         "ETH": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
     },
     "SLIPPAGE": 50,  # 0.1% slippage tolerance
-};
+}
+
+
+@sync_to_async
+def save_kyberswap_route_summary(data) -> None:
+    my_payload = data["data"]["routeSummary"]
+    serializer = KyberswapRouteSummarySerializer(data=my_payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+
 
 async def get_kyber_swap_buy_quote(usdc_amount, token_in, token_out):
     target_chain = CONFIG["CHAIN"]["NAME"]
     target_path = f"/{target_chain}/api/v1/routes"
-    
+
     params = {
-        'tokenIn': token_in,  # USDC as input
-        'tokenOut': token_out,  # SOL as output
-        'amountIn': usdc_amount  # Use USDC amount as input
+        "tokenIn": token_in,  # USDC as input
+        "tokenOut": token_out,  # SOL as output
+        "amountIn": usdc_amount,  # Use USDC amount as input
     }
-    
+
     try:
-        print(f"\n[1] Getting SOL buy price for {usdc_amount} USDC wei from KyberSwap...")
+        print(
+            f"\n[1] Getting SOL buy price for {usdc_amount} USDC wei from KyberSwap..."
+        )
         async with aiohttp.ClientSession() as session:
-            async with session.get(KYBERSWAP_URL + target_path, params=params) as response:
+            async with session.get(
+                KYBERSWAP_URL + target_path, params=params
+            ) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     print(f"Error response from KyberSwap: {error_text}")
                     return {"success": False, "error": f"HTTP Error: {response.status}"}
-                
+
                 data = await response.json()
-                print(json.dumps(data, indent=4))
-        
-        if data and 'data' in data and 'routeSummary' in data['data']:
-            route_summary = data['data']['routeSummary']
-            
-            print("kyberQuote", route_summary)
-            print("kyberRoute", route_summary['route'])
+                await save_kyberswap_route_summary(data)
+                logging.info("kyberswap route summary saved!")
+                logging.info(json.dumps(data, indent=4))
 
+        if data and "data" in data and "routeSummary" in data["data"]:
+            route_summary = data["data"]["routeSummary"]
 
-            
-            sol_amount = route_summary['amountOut']
-            gas_usd = float(route_summary['gasUsd'])
-            
+            # logging.info("kyberQuote", route_summary)
+            # print("kyberRoute", route_summary['route'])
+
+            sol_amount = route_summary["amountOut"]
+            gas_usd = float(route_summary["gasUsd"])
+
             return {
                 "success": True,
                 "solAmount": sol_amount,
                 "gasUsd": gas_usd,
-                "data": data['data']
+                "data": data["data"],
             }
         else:
             print("Invalid response format from KyberSwap")
@@ -81,37 +104,41 @@ async def get_kyber_swap_buy_quote(usdc_amount, token_in, token_out):
         print(f"Error fetching data from KyberSwap: {str(error)}")
         return {"success": False, "error": str(error)}
 
+
 async def run_monitor():
     logger.info("=== Starting Token Arbitrage Monitor (Reversed Direction) ===")
     base_delay = 20
-    
+
     connector = aiohttp.TCPConnector(ssl=ssl_context)
-    
-    async with aiohttp.ClientSession(connector=connector) as session:
+
+    async with aiohttp.ClientSession(connector=connector):
         while True:
             try:
                 start_time = datetime.now()
-                logger.info(f"\n[{start_time.strftime('%H:%M:%S')}] Starting new monitoring cycle...")
-                
-                initial_usdc_wei = "1000000000" # 1000 USDC
+                logger.info(
+                    f"\n[{start_time.strftime('%H:%M:%S')}] Starting new monitoring cycle..."
+                )
+
+                initial_usdc_wei = "1000000000"  # 1000 USDC
 
                 # find token price at kyberswap
-                kyber_quote = await get_kyber_swap_buy_quote(
-				    initial_usdc_wei,
-				    CONFIG["ADDRESSES"]["USDC"],
-				    CONFIG["ADDRESSES"]["SOL"]
-				)
+                _ = await get_kyber_swap_buy_quote(
+                    initial_usdc_wei,
+                    CONFIG["ADDRESSES"]["USDC"],
+                    CONFIG["ADDRESSES"]["SOL"],
+                )
 
-				# calculate execution time
+                # calculate execution time
                 end_time = datetime.now()
                 execution_time = (end_time - start_time).total_seconds()
                 logger.info(f"\nCycle execution time: {execution_time:.2f}s")
-                
+
                 await asyncio.sleep(max(0, base_delay - execution_time))
-                
+
             except Exception as e:
                 logger.error(f"Error in monitoring loop: {e}")
                 await asyncio.sleep(5)
+
 
 if __name__ == "__main__":
     asyncio.run(run_monitor())

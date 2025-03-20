@@ -1,8 +1,9 @@
-import typing as typ
 from django.test import TestCase
 
-from cryptoarchive.exchanges.api.serializers import SwapTransactionSerializer, OneLineUAQuoteSerializer
-from cryptoarchive.exchanges.models import Exchange, OneLineUAQuote
+from cryptoarchive.exchanges.api.serializers import OneLineUAQuoteSerializer
+from cryptoarchive.exchanges.api.serializers import SwapTransactionSerializer
+from cryptoarchive.exchanges.models import Exchange
+from cryptoarchive.exchanges.models import OneLineUAQuote
 from cryptoarchive.exchanges.models import SwapTransaction
 from cryptoarchive.users.tasks import generic_bulk_create
 from cryptoarchive.users.tasks import save_exchange_list
@@ -235,22 +236,40 @@ class SwapTransactionTest(TestCase):
 
 class OneLineQuoteTest(TestCase):
     def setUp(self) -> None:
-        self.payload = {'uSOL': 994.9439, 'uNEAR': 992.1298, 'uADA': 997.6756, 'uXRP': 989.313, 'uPEPE': 920.0343,
-                        'uSEI': 989.2033, 'uDOGE': 993.2361, 'uSHIB': 930.1258, 'uLINK': 992.7845, 'uAPT': 986.4758}
+        self.payload = {
+            "uSOL": 994.9439,
+            "uNEAR": 992.1298,
+            "uADA": 997.6756,
+            "uXRP": 989.313,
+            "uPEPE": 920.0343,
+            "uSEI": 989.2033,
+            "uDOGE": 993.2361,
+            "uSHIB": 930.1258,
+            "uLINK": 992.7845,
+            "uAPT": 986.4758,
+        }
 
     def test_serializer(self) -> None:
         serializer = OneLineUAQuoteSerializer(data=self.payload)
         is_valid = serializer.is_valid(raise_exception=True)
         serializer.save()
         assert is_valid
-        assert 1 == OneLineUAQuote.objects.count()
+        assert OneLineUAQuote.objects.count() == 1
 
-
-    def test_missing_uLINK(self) -> None:
-        payload = {'USUI': 995.3426, 'uSOL': 995.0146, 'uNEAR': 989.1486, 'uADA': 995.2066, 'uXRP': 990.0404,
-                   'uPEPE': 911.3224, 'uSEI': 988.4748, 'uDOGE': 991.5248, 'uSHIB': 928.6132}
+    def test_missing_uLINK(self) -> None:  # noqa: N802
+        payload = {
+            "USUI": 995.3426,
+            "uSOL": 995.0146,
+            "uNEAR": 989.1486,
+            "uADA": 995.2066,
+            "uXRP": 990.0404,
+            "uPEPE": 911.3224,
+            "uSEI": 988.4748,
+            "uDOGE": 991.5248,
+            "uSHIB": 928.6132,
+        }
         serializer = OneLineUAQuoteSerializer(data=payload)
         is_valid = serializer.is_valid(raise_exception=True)
         serializer.save()
         assert is_valid
-        assert 1 == OneLineUAQuote.objects.count()
+        assert OneLineUAQuote.objects.count() == 1
